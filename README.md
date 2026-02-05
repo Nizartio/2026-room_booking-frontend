@@ -1,3 +1,18 @@
+# Room Booking Frontend
+
+Frontend application for **Room Booking System** built with React and TypeScript.
+
+## Tech Stack
+- React
+- TypeScript
+- Vite
+
+## Installation
+```bash
+npm install
+
+# Below is the instalation and default readme of VITE
+
 # React + TypeScript + Vite
 
 This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
@@ -71,3 +86,4 @@ export default defineConfig([
   },
 ])
 ```
+
