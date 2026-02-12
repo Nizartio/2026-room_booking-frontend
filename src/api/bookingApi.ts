@@ -1,8 +1,8 @@
 import axios from "axios";
 import type {
   CreateBulkRoomBookingRequest,
-  BulkRoomBookingResponse,
-  CreateRoomBookingPayload
+  CreateRoomBookingPayload,
+  BulkRoomBookingResponse
 } from "../types/booking";
 
 const api = axios.create({
@@ -12,21 +12,18 @@ const api = axios.create({
 export const createBulkBooking = async (
   payload: CreateBulkRoomBookingRequest
 ): Promise<BulkRoomBookingResponse> => {
-  const response = await api.post<BulkRoomBookingResponse>(
-    "/room-bookings/bulk",
-    payload
-  );
-
+  const response = await api.post("/room-bookings/bulk", payload);
   return response.data;
 };
 
 export const checkConflicts = async (
   payload: CreateRoomBookingPayload[]
 ): Promise<CreateRoomBookingPayload[]> => {
-  const response = await api.post<CreateRoomBookingPayload[]>(
-    "/room-bookings/check-conflicts",
-    payload
-  );
+  const response = await api.post<CreateRoomBookingPayload[]>("/room-bookings/check-conflicts", payload);
 
   return response.data;
+};
+
+export const cancelBooking = async (id: number) => {
+  await api.delete(`/room-bookings/${id}`);
 };

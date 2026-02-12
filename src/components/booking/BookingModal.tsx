@@ -163,13 +163,12 @@ function BookingModal({ isOpen, onClose, onAdd }: Props) {
   };
   
   return (
-    <div style={overlayStyle}>
-      <div style={modalStyle}>
-        <h2>Tambah Peminjaman</h2>
-
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+      <div className="bg-white w-full max-w-lg rounded-xl shadow-xl p-6">
+        <h2 className="text-xl font-semibold mb-4">Tambah Peminjaman</h2>
         {/* Date Selection */}
         <div>
-          <label>Pilih Rentang Tanggal:</label>
+          <label className="block text-sm font-medium mb-1"> Pilih Rentang Tanggal:</label>
           <DatePicker
             selectsRange
             startDate={startDate}
@@ -178,37 +177,43 @@ function BookingModal({ isOpen, onClose, onAdd }: Props) {
               setDateRange(update as [Date | null, Date | null]);
             }}
             excludeDates={unavailableDates}
+            className="w-full border rounded-lg px-3 py-2"
             dateFormat="yyyy-MM-dd"
           />
         </div>
         
         {/* Time Selection*/}
         <div>
-          <label>Jam Mulai:</label>
-          <input
-            type="time"
-            value={startTime}
-            onChange={e => setStartTime(e.target.value)}
-          />
-        </div>
-
-        <div>
-          <label>Jam Selesai:</label>
-          <input
-            type="time"
-            value={endTime}
-            onChange={e => setEndTime(e.target.value)}
-          />
+            <div className="flex mt-4 mb-1">
+              <div className="w-full mx-1"> 
+                <label className="block text-center font-medium mb-1">Jam Mulai:</label>
+                <input
+                  type="time"
+                  value={startTime}
+                  onChange={e => setStartTime(e.target.value)}
+                  className="w-full border rounded-lg px-3 py-2"
+                />
+              </div>
+              <div className="w-full mx-1">
+                <label className="block text-center font-medium mb-1">Jam Selesai:</label>
+                <input
+                  type="time"
+                  value={endTime}
+                  onChange={e => setEndTime(e.target.value)}
+                  className="w-full border rounded-lg px-3 py-2"
+                />
+              </div>
+            </div>
         </div>
 
         {/* Room Selection */}
-        <div style={{ marginTop: "1rem" }}>
-          <label>Pilih Ruangan:</label>
+        <div>
+          <label className="block text-sm font-medium mb-1">Pilih Ruangan:</label>
 
           {isLoadingRooms && <p>Memuat ruangan...</p>}
 
           {roomsError && (
-            <p style={{ color: "red" }}>{roomsError}</p>
+            <p>{roomsError}</p>
           )}
 
           {!isLoadingRooms && (
@@ -218,12 +223,7 @@ function BookingModal({ isOpen, onClose, onAdd }: Props) {
                 placeholder="Cari ruangan..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                style={{
-                  width: "100%",
-                  marginTop: "0.5rem",
-                  marginBottom: "0.5rem",
-                  padding: "0.5rem"
-                }}
+                className="w-full border rounded-lg px-3 py-2"
               />
 
               {/* MULTI SELECT */}
@@ -238,58 +238,43 @@ function BookingModal({ isOpen, onClose, onAdd }: Props) {
                   );
                   setSelectedRooms(values);
                 }}
-                style={{ width: "100%" }}
+                className="w-full border rounded-lg px-3 py-2"
               >
                 {rooms
                   .filter(room =>
                     room.isActive &&
-                    room.name
-                      .toLowerCase()
-                      .includes(searchTerm.toLowerCase())
+                     room.name.toLowerCase().includes(searchTerm.toLowerCase())
                   )
                   .map(room => (
                     <option
                       key={room.id}
                       value={room.id}
                       disabled={conflictRoomIds.includes(room.id)}
-                      style={
-                        conflictRoomIds.includes(room.id)
-                          ? { backgroundColor: "#ffd6d6", color: "red" }
-                          : {}
-                      }
                     >
                       {room.name} (Kap. {room.capacity})
                     </option>
                   ))}
               </select>
 
-              <small>
+              <p className="text-sm text-gray-500 mt-1">
                 Gunakan Ctrl / Cmd untuk pilih lebih dari satu.
-              </small>
+              </p>
             </>
           )}
         </div>
 
         {/* Conflict Selection */}
         {isCheckingConflict && (
-          <div style={{ marginTop: "0.5rem", color: "blue" }}>
+          <div>
             Mengecek ketersediaan...
           </div>
         )}
 
         {conflicts.length > 0 && (
-        <div
-          style={{
-            marginTop: "1rem",
-            padding: "0.75rem",
-            background: "#ffe5e5",
-            border: "1px solid red",
-            borderRadius: "6px"
-          }}
-        >
-          <strong>Konflik ditemukan:</strong>
+        <div className="mt-4 bg-red-50 border border-red-300 text-red-700 p-3 rounded-lg">
+          <p className="text-sm font-semibold mb-1">Konflik ditemukan:</p>
           {conflicts.map((c, index) => (
-            <div key={index}>
+            <div key={index} className="text-sm">
               Room {c.roomId} bentrok pada{" "}
               {new Date(c.startTime).toLocaleDateString()} jam{" "}
               {new Date(c.startTime).toLocaleTimeString()} -{" "}
@@ -300,12 +285,13 @@ function BookingModal({ isOpen, onClose, onAdd }: Props) {
       )}
 
         {/* Action Selection */}
-        <div style={{ marginTop: "1rem" }}>
-          <button 
-            onClick={handleSubmit}
-            disabled={conflicts.length > 0}
+        <div className="flex justify-end gap-3 mt-6">
+
+          <button
+            onClick={onClose}
+            className="px-4 py-2 rounded-lg border border-gray-300 hover:bg-gray-100 transition"
           >
-            Tambahkan ke Summary
+            Batal
           </button>
 
           <button
@@ -317,32 +303,15 @@ function BookingModal({ isOpen, onClose, onAdd }: Props) {
               !startTime ||
               !endTime
             }
+            className="px-4 py-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700 disabled:bg-gray-400 transition"
           >
-            Tambahkan ke Summary
+            Tambahkan
           </button>
+
         </div>
       </div>
     </div>
   );
 }
-
-const overlayStyle: React.CSSProperties = {
-  position: "fixed",
-  top: 0,
-  left: 0,
-  width: "100vw",
-  height: "100vh",
-  background: "rgba(0,0,0,0.5)",
-  display: "flex",
-  justifyContent: "center",
-  alignItems: "center"
-};
-
-const modalStyle: React.CSSProperties = {
-  background: "white",
-  padding: "2rem",
-  borderRadius: "8px",
-  width: "400px"
-};
 
 export default BookingModal;
