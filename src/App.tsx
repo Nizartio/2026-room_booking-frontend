@@ -1,5 +1,8 @@
 import { Routes, Route } from "react-router-dom";
 import BookingPage from "./pages/BookingPage";
+import "react-datepicker/dist/react-datepicker.css";
+
+
 
 function App() {
   
