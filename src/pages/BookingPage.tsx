@@ -81,12 +81,18 @@ function BookingPage() {
   };
 
   //Cancel booking group  
-  const cancelGroup = (groupId: string) => {
-    toast("Booking dibatalkan.", { icon: "⚠️" });
+  const cancelGroup = async (groupId: string) => {
+    try {
+      // sementara: hapus frontend saja
+      setBookingGroups(prev =>
+        prev.filter(g => g.id !== groupId)
+      );
 
-    setBookingGroups(prev =>
-      prev.filter(g => g.id !== groupId)
-    );
+      toast.success("Booking dibatalkan.");
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    } catch (error) {
+      toast.error("Gagal membatalkan booking.");
+    }
   };
 
   useEffect(() => {

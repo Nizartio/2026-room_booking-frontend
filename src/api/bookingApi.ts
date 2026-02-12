@@ -23,3 +23,7 @@ export const checkConflicts = async (
 
   return response.data;
 };
+
+export const cancelBooking = async (id: number) => {
+  await api.delete(`/room-bookings/${id}`);
+};
