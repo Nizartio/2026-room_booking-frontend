@@ -2,6 +2,8 @@ import { useEffect, useState } from "react";
 import { fetchCustomerBookings } from "../api/customerBookingApi";
 import type { RoomBookingResponse } from "../types/admin";
 
+import EditBookingModal from "../components/common/EditBookingModal";
+
 
 const STATUS_FILTERS = ["All", "Pending", "Approved", "Rejected"] as const;
 type StatusFilter = (typeof STATUS_FILTERS)[number];
@@ -12,26 +14,29 @@ function CustomerBookingsPage() {
   const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] =
     useState<StatusFilter>("All");
+    const [editingBooking, setEditingBooking] =
+  useState<RoomBookingResponse | null>(null);
 
   const customerId = 1; // simulate login
 
-  useEffect(() => {
-    const loadBookings = async () => {
-      try {
-        setLoading(true);
-        const result = await fetchCustomerBookings(
-          customerId,
-          statusFilter
-        );
-        setBookings(result.data);
-      } catch (error) {
-        console.error(error);
-      } finally {
-        setLoading(false);
-      }
-    };
-    loadBookings();
-  }, [statusFilter]);
+  const loadBookings = async () => {
+  try {
+    setLoading(true);
+    const result = await fetchCustomerBookings(
+      customerId,
+      statusFilter
+    );
+    setBookings(result.data);
+  } catch (error) {
+    console.error(error);
+  } finally {
+    setLoading(false);
+  }
+};
+
+useEffect(() => {
+  loadBookings();
+}, [statusFilter]);
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -101,6 +106,7 @@ function CustomerBookingsPage() {
               </div>
 
               <p className="text-sm text-gray-500 mt-2">
+
                 {new Date(
                   booking.startTime
                 ).toLocaleString()} —{" "}
@@ -108,10 +114,30 @@ function CustomerBookingsPage() {
                   booking.endTime
                 ).toLocaleString()}
               </p>
+              {booking.status === "Rejected" && (
+                <button
+                  onClick={() => setEditingBooking(booking)}
+                  className="mt-3 text-sm text-blue-600 hover:underline"
+                >
+                  Edit
+                </button>
+              )}
             </div>
           ))}
         </div>
       )}
+      <EditBookingModal
+        booking={editingBooking as RoomBookingResponse}
+        isOpen={!!editingBooking}
+        bookingId={editingBooking?.id ?? 0}
+        initialStartTime={editingBooking?.startTime ?? ""}
+        initialEndTime={editingBooking?.endTime ?? ""}
+        onClose={() => setEditingBooking(null)}
+        onSuccess={() => {
+          setEditingBooking(null);
+          loadBookings();
+        }}
+      />
     </div>
   );
 }
