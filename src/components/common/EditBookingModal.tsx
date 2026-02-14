@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import toast from "react-hot-toast";
 import type { RoomBookingResponse } from "../../types/admin";
 import { updateBooking } from "../../api/customerBookingApi";
-import axios from "axios";
+import { getApiErrorMessage } from "../../api/apiClient";
 
 type Props = {
   booking: RoomBookingResponse | null;
@@ -51,18 +51,7 @@ function EditBookingModal({ booking, isOpen, onClose, onSuccess }: Props) {
       onClose();
       
     } catch (error: unknown) {
-      let message = "Gagal update booking.";
-
-      if (axios.isAxiosError(error)) {
-        message =
-          error.response?.data?.message ||
-          error.response?.data ||
-          error.message;
-      } else if (error instanceof Error) {
-        message = error.message;
-      }
-
-      toast.error(message);
+      toast.error(getApiErrorMessage(error, "Gagal update booking."));
     } finally {
       setLoading(false);
     }

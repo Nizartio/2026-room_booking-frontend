@@ -49,5 +49,6 @@ export const resubmitBooking = async (
 };
 
 export const deleteBooking = async (id: number) => {
-  return api.delete(`/room-bookings/${id}`);
-}
+  const response = await api.delete(`/room-bookings/${id}`);
+  return response.data;
+};

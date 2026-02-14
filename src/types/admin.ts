@@ -11,12 +11,33 @@ export type RoomBookingResponse = {
   endTime: string;
 
   status: string;
+  description?: string;
 };
 
-export type PaginatedBookingResponse = {
+export type BookingGroupDetail = {
+  id: number;
+  customerId: number;
+  customerName: string;
+  customerEmail: string;
+  startDate: string;
+  endDate: string;
+  startTime: string;
+  endTime: string;
+  description?: string;
+  status: string;
+  createdAt: string;
+  updatedAt?: string;
+  totalRooms: number;
+  approvedCount: number;
+  pendingCount: number;
+  rejectedCount: number;
+  roomBookings: RoomBookingResponse[];
+};
+
+export type PaginatedBookingGroupResponse = {
   page: number;
   pageSize: number;
   totalItems: number;
   totalPages: number;
-  data: RoomBookingResponse[];
+  data: BookingGroupDetail[];
 };
