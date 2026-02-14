@@ -4,12 +4,24 @@ import type { BookingGroupDetail } from "../types/admin";
 import toast from "react-hot-toast";
 import { getApiErrorMessage } from "../api/apiClient";
 import { formatDateLong } from "../utils/dateUtils";
+import ResubmitBookingModal from "../components/common/ResubmitBookingModal";
+import DeleteBookingModal from "../components/common/DeleteBookingModal";
 
 
 function MyBookingsPage() {
   const [bookingGroups, setBookingGroups] = useState<BookingGroupDetail[]>([]);
   const [loading, setLoading] = useState(true);
   const [expandedId, setExpandedId] = useState<number | null>(null);
+  const [editingBooking, setEditingBooking] = useState<{
+    id: number;
+    roomName: string;
+    startTime: string;
+    endTime: string;
+  } | null>(null);
+  const [deletingBooking, setDeletingBooking] = useState<{
+    id: number;
+    roomName: string;
+  } | null>(null);
 
   const customerId = 1; // simulate login
 
@@ -160,9 +172,37 @@ function MyBookingsPage() {
                               </p>
                             </div>
 
-                            <span className={`px-2 py-1 text-xs whitespace-nowrap rounded ${getStatusColor(booking.status)}`}>
-                              {booking.status === "Approved" ? "Disetujui" : booking.status === "Rejected" ? "Ditolak" : "Menunggu"}
-                            </span>
+                            <div className="flex items-center gap-2">
+                              <span className={`px-2 py-1 text-xs whitespace-nowrap rounded ${getStatusColor(booking.status)}`}>
+                                {booking.status === "Approved" ? "Disetujui" : booking.status === "Rejected" ? "Ditolak" : "Menunggu"}
+                              </span>
+
+                              {/* Edit and Delete buttons for rejected bookings */}
+                              {booking.status === "Rejected" && (
+                                <div className="flex gap-2 ml-2">
+                                  <button
+                                    onClick={() => setEditingBooking({
+                                      id: booking.id,
+                                      roomName: booking.roomName,
+                                      startTime: booking.startTime,
+                                      endTime: booking.endTime
+                                    })}
+                                    className="px-3 py-1 text-xs bg-sky-500 text-white rounded hover:bg-sky-600 transition"
+                                  >
+                                    Ubah
+                                  </button>
+                                  <button
+                                    onClick={() => setDeletingBooking({
+                                      id: booking.id,
+                                      roomName: booking.roomName
+                                    })}
+                                    className="px-3 py-1 text-xs bg-rose-500 text-white rounded hover:bg-rose-600 transition"
+                                  >
+                                    Hapus
+                                  </button>
+                                </div>
+                              )}
+                            </div>
                           </div>
                         </div>
                       ))}
@@ -175,6 +215,36 @@ function MyBookingsPage() {
             </div>
           ))}
         </div>
+      )}
+
+      {/* Resubmit Modal */}
+      {editingBooking && (
+        <ResubmitBookingModal
+          isOpen={!!editingBooking}
+          onClose={() => setEditingBooking(null)}
+          bookingId={editingBooking.id}
+          roomName={editingBooking.roomName}
+          initialStartTime={editingBooking.startTime}
+          initialEndTime={editingBooking.endTime}
+          onSuccess={() => {
+            setEditingBooking(null);
+            loadBookings();
+          }}
+        />
+      )}
+
+      {/* Delete Modal */}
+      {deletingBooking && (
+        <DeleteBookingModal
+          isOpen={!!deletingBooking}
+          onClose={() => setDeletingBooking(null)}
+          bookingId={deletingBooking.id}
+          roomName={deletingBooking.roomName}
+          onSuccess={() => {
+            setDeletingBooking(null);
+            loadBookings();
+          }}
+        />
       )}
     </div>
   );
