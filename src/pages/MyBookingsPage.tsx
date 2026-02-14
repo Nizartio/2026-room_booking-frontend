@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback } from "react";
-import { fetchCustomerBookings } from "../api/customerBookingApi";
+import { fetchCustomerBookings, deleteBooking } from "../api/customerBookingApi";
 import type { RoomBookingResponse } from "../types/admin";
 
 import EditBookingModal from "../components/common/EditBookingModal";
@@ -104,7 +104,7 @@ useEffect(() => {
                 </span>
               </div>
 
-              <p className="text-sm text-gray-500 mt-2">
+              <p className="flex text-sm text-gray-500 mt-2">
 
                 {new Date(
                   booking.startTime
@@ -113,14 +113,31 @@ useEffect(() => {
                   booking.endTime
                 ).toLocaleString()}
               </p>
-              {booking.status === "Rejected" && (
+             {booking.status === "Rejected" && (
+              <div className="justify-end mt-3 flex gap-4">
                 <button
                   onClick={() => setEditingBooking(booking)}
-                  className="mt-3 text-sm text-blue-600 hover:underline"
+                  className="text-sm text-blue-600 hover:underline"
                 >
                   Edit
                 </button>
-              )}
+
+                <button
+                  onClick={async () => {
+                    try {
+                      await deleteBooking(booking.id);
+                      toast.success("Booking deleted.");
+                      loadBookings();
+                    } catch {
+                      toast.error("Gagal menghapus booking.");
+                    }
+                  }}
+                  className="text-sm text-red-600 hover:underline"
+                >
+                  Delete
+                </button>
+              </div>
+            )}
             </div>
           ))}
         </div>

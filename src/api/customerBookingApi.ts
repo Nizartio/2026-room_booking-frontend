@@ -47,3 +47,7 @@ export const resubmitBooking = async (
   );
   return response.data;
 };
+
+export const deleteBooking = async (id: number) => {
+  return api.delete(`/room-bookings/${id}`);
+}
