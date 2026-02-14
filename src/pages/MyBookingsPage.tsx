@@ -1,8 +1,9 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { fetchCustomerBookings } from "../api/customerBookingApi";
 import type { RoomBookingResponse } from "../types/admin";
 
 import EditBookingModal from "../components/common/EditBookingModal";
+import { toast } from "react-hot-toast/headless";
 
 
 const STATUS_FILTERS = ["All", "Pending", "Approved", "Rejected"] as const;
@@ -19,24 +20,25 @@ function MyBookingsPage() {
 
   const customerId = 1; // simulate login
 
-  const loadBookings = async () => {
+  const loadBookings = useCallback(async () => {
   try {
     setLoading(true);
     const result = await fetchCustomerBookings(
       customerId,
-      statusFilter
+      statusFilter === "All" ? undefined : statusFilter
     );
     setBookings(result.data ?? []);
   } catch (error) {
     console.error(error);
+    toast.error("Gagal memuat data booking.");
   } finally {
     setLoading(false);
   }
-};
+}, [customerId, statusFilter]);
 
 useEffect(() => {
   loadBookings();
-}, [statusFilter]);
+}, [loadBookings]);
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -97,10 +99,7 @@ useEffect(() => {
                 </h2>
 
                 <span
-                  className={`px-2 py-1 text-xs rounded ${getStatusColor(
-                    booking.status
-                  )}`}
-                >
+                  className={`px-2 py-1 text-xs rounded ${getStatusColor(booking.status)}`}>
                   {booking.status}
                 </span>
               </div>

@@ -55,7 +55,7 @@ function BookingPage() {
 
           if (failed.length === 0) {
             toast.success("Booking berhasil diajukan!");
-            navigate("/customer/my-bookings");
+            navigate("/customers/my-bookings");
             return { ...g, status: "pending", errors: [] };
           }
 

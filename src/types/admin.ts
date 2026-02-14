@@ -12,3 +12,11 @@ export type RoomBookingResponse = {
 
   status: string;
 };
+
+export type PaginatedBookingResponse = {
+  page: number;
+  pageSize: number;
+  totalItems: number;
+  totalPages: number;
+  data: RoomBookingResponse[];
+};
