@@ -6,22 +6,22 @@ function Navbar() {
   const { role, setRole } = useRole();
 
   const linkClass = ({ isActive }: { isActive: boolean }) =>
-    `text-sm font-medium px-3 py-2 rounded-md transition ${
+    `text-sm font-medium px-3 py-2 rounded-md transition border-b-2 ${
       isActive
-        ? "bg-blue-600 text-white"
-        : "text-gray-700 hover:bg-gray-100"
+        ? "bg-rose-500 text-white border-yellow-400 shadow-md"
+        : "text-black hover:bg-sky-100 border-b-2 border-transparent"
     }`;
 
   return (
-    <nav className="bg-white border-b shadow-sm px-6 py-4 flex justify-between items-center">
+    <nav className="bg-sky-50 border-b border-yellow-300 shadow-sm px-6 py-4 flex justify-between items-center sticky top-0 z-40">
       
       {/* LEFT */}
       <div className="flex items-center gap-6">
         <NavLink
           to="/customers/my-bookings"
-          className="text-lg font-bold text-blue-600"
+          className="text-lg font-bold text-rose-500"
         >
-          RoomBooking
+          PinjamIn
         </NavLink>
 
         {role === "Customer" && (
@@ -54,7 +54,7 @@ function Navbar() {
 
       {/* RIGHT */}
       <div className="flex items-center gap-3">
-        <span className="text-sm text-gray-500">
+        <span className="text-sm text-black">
           Role:
         </span>
 
@@ -63,7 +63,7 @@ function Navbar() {
           onChange={(e) =>
             setRole(e.target.value as Role)
           }
-          className="border rounded-md px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+          className="border border-yellow-300 rounded-md px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-rose-500 bg-white"
         >
           <option value="Customer">
             Customer

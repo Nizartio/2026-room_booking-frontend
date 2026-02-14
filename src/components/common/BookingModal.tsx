@@ -1,5 +1,5 @@
-import { useState, useEffect } from "react";
-import { fetchRooms, fetchUnavailableDates } from "../../api/roomApi";
+import { useState, useEffect, useCallback } from "react";
+import { fetchRooms } from "../../api/roomApi";
 import type { Room } from "../../types/room";
 import type { BookingGroup } from "../../types/booking";
 import DatePicker from "react-datepicker";
@@ -12,16 +12,17 @@ type Props = {
   isOpen: boolean;
   onClose: () => void;
   onAdd: (group: BookingGroup) => void;
+  isInline?: boolean;
 };
 
-function BookingModal({ isOpen, onClose, onAdd }: Props) {
+function BookingModal({ isOpen, onClose, onAdd, isInline = false }: Props) {
   const [dateRange, setDateRange] = useState<[Date | null, Date | null]>([null, null]);
   const [startDate, endDate] = dateRange;
   const [startTime, setStartTime] = useState("");
   const [endTime, setEndTime] = useState("");
+  const [description, setDescription] = useState("");
   const [selectedRooms, setSelectedRooms] = useState<number[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
-  const [unavailableDates, setUnavailableDates] = useState<Date[]>([]);
   const [isCheckingConflict, setIsCheckingConflict] = useState(false);
 
   const [rooms, setRooms] = useState<Room[]>([]);
@@ -29,10 +30,13 @@ function BookingModal({ isOpen, onClose, onAdd }: Props) {
   const [roomsError, setRoomsError] = useState<string | null>(null);
 
   const [conflicts, setConflicts] = useState<
-    { roomId: number; startTime: string; endTime: string }[]
+    { roomId: number; date?: string; startTime?: string; endTime?: string; message: string }[]
   >([]);
+
   useEffect(() => {
-    if (!isOpen) return;
+    if (!isOpen && !isInline) {
+      return;
+    }
 
     const loadData = async () => {
       try {
@@ -42,19 +46,40 @@ function BookingModal({ isOpen, onClose, onAdd }: Props) {
         const roomsData = await fetchRooms();
         setRooms(roomsData);
 
-        const unavailable = await fetchUnavailableDates();
-        setUnavailableDates(unavailable.map(d => new Date(d)));
-
       } catch (error) {
         console.error(error);
-        setRoomsError("Gagal memuat data.");
+        setRoomsError("Gagal memload data.");
       } finally {
         setIsLoadingRooms(false);
       }
     };
 
     loadData();
-  }, [isOpen]);
+  }, [isOpen, isInline]);
+
+  const generatePayload = useCallback(() => {
+    if (!startDate || !endDate) return [];
+
+    const dates = generateDateRange(
+      startDate.toISOString().split("T")[0],
+      endDate.toISOString().split("T")[0]
+    );
+
+    const payload = [];
+
+    for (const date of dates) {
+      for (const roomId of selectedRooms) {
+        payload.push({
+          roomId,
+          customerId: 1,
+          startTime: combineDateTime(date, startTime),
+          endTime: combineDateTime(date, endTime)
+        });
+      }
+    }
+
+    return payload;
+  }, [startDate, endDate, selectedRooms, startTime, endTime]);
 
   useEffect(() => {
     const handler = setTimeout(async () => {
@@ -86,19 +111,13 @@ function BookingModal({ isOpen, onClose, onAdd }: Props) {
 
     return () => clearTimeout(handler);
 
-  }, [startDate, endDate, startTime, endTime, selectedRooms]);
-  
-  const conflictRoomIds = conflicts.map(c => c.roomId);
-  useEffect(() => {
-    if (conflictRoomIds.length === 0) return;
+  }, [startDate, endDate, startTime, endTime, selectedRooms, generatePayload]);
 
-    setSelectedRooms(prev =>
-      prev.filter(roomId => !conflictRoomIds.includes(roomId))
-    );
-  }, [conflictRoomIds]);
-  
+  const getRoomName = (roomId: number) => {
+    const room = rooms.find(r => r.id === roomId);
+    return room ? room.name : `Room #${roomId}`;
+  };
 
-  if (!isOpen) return null;
   const handleSubmit = () => {
     if (!startDate || !endDate || !startTime || !endTime) {
       alert("Semua field harus diisi.");
@@ -126,190 +145,202 @@ function BookingModal({ isOpen, onClose, onAdd }: Props) {
       startTime,
       endTime,
       roomIds: selectedRooms,
+      description,
       status: "draft",
       errors: []
     };
 
 
     onAdd(newGroup);
-    onClose();
+    
+    // Only close modal if not in inline mode
+    if (!isInline) {
+      onClose();
+    }
 
     // reset form
     setStartTime("");
     setEndTime("");
+    setDescription("");
     setSelectedRooms([]);
   };
-  const generatePayload = () => {
-    if (!startDate || !endDate) return [];
-
-    const dates = generateDateRange(
-      startDate.toISOString().split("T")[0],
-      endDate.toISOString().split("T")[0]
-    );
-
-    const payload = [];
-
-    for (const date of dates) {
-      for (const roomId of selectedRooms) {
-        payload.push({
-          roomId,
-          customerId: 1,
-          startTime: combineDateTime(date, startTime),
-          endTime: combineDateTime(date, endTime)
-        });
-      }
-    }
-
-    return payload;
-  };
   
-  return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-      <div className="bg-white w-full max-w-lg rounded-xl shadow-xl p-6">
-        <h2 className="text-xl font-semibold mb-4">Tambah Peminjaman</h2>
-        {/* Date Selection */}
-        <div>
-          <label className="block text-sm font-medium mb-1"> Pilih Rentang Tanggal:</label>
-          <DatePicker
-            selectsRange
-            startDate={startDate}
-            endDate={endDate}
-            onChange={(update) => {
-              setDateRange(update as [Date | null, Date | null]);
-            }}
-            excludeDates={unavailableDates}
-            className="w-full border rounded-lg px-3 py-2"
-            dateFormat="yyyy-MM-dd"
-          />
-        </div>
-        
-        {/* Time Selection*/}
-        <div>
-            <div className="flex mt-4 mb-1">
-              <div className="w-full mx-1"> 
-                <label className="block text-center font-medium mb-1">Jam Mulai:</label>
-                <input
-                  type="time"
-                  value={startTime}
-                  onChange={e => setStartTime(e.target.value)}
-                  className="w-full border rounded-lg px-3 py-2"
-                />
-              </div>
-              <div className="w-full mx-1">
-                <label className="block text-center font-medium mb-1">Jam Selesai:</label>
-                <input
-                  type="time"
-                  value={endTime}
-                  onChange={e => setEndTime(e.target.value)}
-                  className="w-full border rounded-lg px-3 py-2"
-                />
-              </div>
-            </div>
-        </div>
-
-        {/* Room Selection */}
-        <div>
-          <label className="block text-sm font-medium my-2">Pilih Ruangan:</label>
-
-          {isLoadingRooms && <p>Memuat ruangan...</p>}
-
-          {roomsError && (
-            <p>{roomsError}</p>
-          )}
-
-          {!isLoadingRooms && (
-            <>
-              <input
-                type="text"
-                placeholder="Cari ruangan..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full border rounded-lg px-3 py-2"
-              />
-
-              {/* MULTI SELECT */}
-              <select
-                multiple
-                size={6}
-                value={selectedRooms.map(String)}
-                onChange={(e) => {
-                  const values = Array.from(
-                    e.target.selectedOptions,
-                    option => Number(option.value)
-                  );
-                  setSelectedRooms(values);
-                }}
-                className="w-full border rounded-lg px-3 py-2"
-              >
-                {rooms
-                  .filter(room =>
-                    room.isActive &&
-                     room.name.toLowerCase().includes(searchTerm.toLowerCase())
-                  )
-                  .map(room => (
-                    <option
-                      key={room.id}
-                      value={room.id}
-                      disabled={conflictRoomIds.includes(room.id)}
-                    >
-                      {room.name} (Kap. {room.capacity})
-                    </option>
-                  ))}
-              </select>
-
-              <p className="text-sm text-gray-500 mt-1">
-                Gunakan Ctrl / Cmd untuk pilih lebih dari satu.
-              </p>
-            </>
-          )}
-        </div>
-
-        {/* Conflict Selection */}
-        {isCheckingConflict && (
-          <div>
-            Mengecek ketersediaan...
+  const formContent = (
+    <>
+      <h2 className="text-xl font-semibold mb-4">Tambah Peminjaman</h2>
+      
+      {/* Date Selection */}
+      <div className="mb-4">
+        <label className="block text-sm font-medium mb-1">Pilih Rentang Tanggal:</label>
+        <DatePicker
+          selectsRange
+          startDate={startDate}
+          endDate={endDate}
+          onChange={(update) => {
+            setDateRange(update as [Date | null, Date | null]);
+          }}
+          className="w-full border border-yellow-300 rounded-lg px-3 py-2"
+          dateFormat="dd-MM-yyyy"
+        />
+      </div>
+      
+      {/* Time Selection*/}
+      <div className="mb-4">
+        <div className="flex gap-2">
+          <div className="flex-1"> 
+            <label className="block text-sm font-medium mb-1">Jam Mulai:</label>
+            <input
+              type="time"
+              value={startTime}
+              onChange={e => setStartTime(e.target.value)}
+              className="w-full border border-yellow-300 rounded-lg px-3 py-2"
+            />
           </div>
+          <div className="flex-1">
+            <label className="block text-sm font-medium mb-1">Jam Selesai:</label>
+            <input
+              type="time"
+              value={endTime}
+              onChange={e => setEndTime(e.target.value)}
+              className="w-full border border-yellow-300 rounded-lg px-3 py-2"
+            />
+          </div>
+        </div>
+      </div>
+
+      {/* Room Selection */}
+      <div className="mb-4">
+        <label className="block text-sm font-medium mb-1">Pilih Ruangan:</label>
+
+        {isLoadingRooms && <p className="text-sky-600">Memuat ruangan...</p>}
+
+        {roomsError && (
+          <p className="text-red-600">{roomsError}</p>
         )}
 
-        {conflicts.length > 0 && (
-        <div className="mt-4 bg-red-50 border border-red-300 text-red-700 p-3 rounded-lg">
-          <p className="text-sm font-semibold mb-1">Konflik ditemukan:</p>
-          {conflicts.map((c, index) => (
-            <div key={index} className="text-sm">
-              Room {c.roomId} bentrok pada{" "}
-              {new Date(c.startTime).toLocaleDateString()} jam{" "}
-              {new Date(c.startTime).toLocaleTimeString()} -{" "}
-              {new Date(c.endTime).toLocaleTimeString()}
-            </div>
-          ))}
+        {!isLoadingRooms && (
+          <>
+            <input
+              type="text"
+              placeholder="Cari ruangan..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full border border-yellow-300 rounded-lg px-3 py-2 mb-2"
+            />
+
+            {/* MULTI SELECT */}
+            <select
+              multiple
+              size={6}
+              value={selectedRooms.map(String)}
+              onChange={(e) => {
+                const values = Array.from(
+                  e.target.selectedOptions,
+                  option => Number(option.value)
+                );
+                setSelectedRooms(values);
+              }}
+              className="w-full border border-yellow-300 rounded-lg px-3 py-2"
+            >
+              {rooms
+                .filter(room =>
+                  room.isActive &&
+                   room.name.toLowerCase().includes(searchTerm.toLowerCase())
+                )
+                .map(room => (
+                  <option
+                    key={room.id}
+                    value={room.id}
+                    disabled={conflicts.some(c => c.roomId === room.id)}
+                  >
+                    {room.name} (Kap. {room.capacity})
+                  </option>
+                ))}
+            </select>
+
+            <p className="text-xs text-sky-600 mt-1">
+              Gunakan Ctrl / Cmd untuk pilih lebih dari satu.
+            </p>
+          </>
+        )}
+      </div>
+
+      {/* Description */}
+      <div className="mb-4">
+        <label className="block text-sm font-medium mb-1">Tujuan (Deskripsi):</label>
+        <textarea
+          value={description}
+          onChange={(e) => setDescription(e.target.value)}
+          placeholder="Contoh: Rapat koordinasi tim, Acara gathering, dll"
+          className="w-full border border-yellow-300 rounded-lg px-3 py-2 h-20 text-sm"
+        />
+      </div>
+
+      {/* Checking Conflicts */}
+      {isCheckingConflict && (
+        <div className="mb-4 p-3 bg-yellow-50 border border-yellow-300 rounded-lg text-sm text-yellow-800">
+          Mengecek ketersediaan ruangan...
         </div>
       )}
 
-        {/* Action Selection */}
-        <div className="flex justify-end gap-3 mt-6">
+      {/* Conflicts Display */}
+      {conflicts.length > 0 && (
+        <div className="mb-4 bg-red-50 border border-red-300 text-red-700 p-3 rounded-lg">
+          <p className="text-sm font-semibold mb-2">⚠️ Konflik ditemukan:</p>
+          {conflicts.map((c, index) => (
+            <div key={index} className="text-sm mb-1">
+              • {getRoomName(c.roomId)}: {c.message}
+            </div>
+          ))}
+          <p className="text-xs mt-2 text-red-600">
+            Ruangan yang bentrok tidak bisa dipilih. Silakan ubah waktu atau pilih ruangan lain.
+          </p>
+        </div>
+      )}
 
+      {/* Action Buttons */}
+      <div className="flex justify-end gap-3 mt-6">
+        {!isInline && (
           <button
             onClick={onClose}
-            className="px-4 py-2 rounded-lg border border-gray-300 hover:bg-gray-100 transition"
+            className="px-4 py-2 rounded-lg border border-yellow-300 text-black hover:bg-sky-100 transition"
           >
             Batal
           </button>
+        )}
 
-          <button
-            onClick={handleSubmit}
-            disabled={
-              selectedRooms.length === 0 ||
-              !startDate ||
-              !endDate ||
-              !startTime ||
-              !endTime
-            }
-            className="px-4 py-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700 disabled:bg-gray-400 transition"
-          >
-            Tambahkan
-          </button>
+        <button
+          onClick={handleSubmit}
+          disabled={
+            selectedRooms.length === 0 ||
+            !startDate ||
+            !endDate ||
+            !startTime ||
+            !endTime ||
+            conflicts.length > 0
+          }
+          className="px-4 py-2 rounded-lg bg-rose-500 text-white hover:opacity-90 disabled:bg-gray-400 disabled:cursor-not-allowed transition"
+        >
+          {isInline ? "Tambahkan ke Keranjang" : "Tambahkan"}
+        </button>
+      </div>
+    </>
+  );
 
-        </div>
+  if (isInline) {
+    return (
+      <div className="bg-white rounded-xl p-6 border border-yellow-300">
+        {formContent}
+      </div>
+    );
+  }
+
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+      <div className="bg-white w-full max-w-lg rounded-xl shadow-xl p-6">
+        {formContent}
       </div>
     </div>
   );
