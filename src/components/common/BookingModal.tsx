@@ -3,6 +3,7 @@ import { fetchRooms, fetchUnavailableDates } from "../../api/roomApi";
 import type { Room } from "../../types/room";
 import type { BookingGroup } from "../../types/booking";
 import DatePicker from "react-datepicker";
+import "react-datepicker/dist/react-datepicker.css";
 import { format } from "date-fns";
 import { generateDateRange, combineDateTime } from "../../utils/dateUtils";
 import { checkConflicts } from "../../api/bookingApi";
@@ -208,7 +209,7 @@ function BookingModal({ isOpen, onClose, onAdd }: Props) {
 
         {/* Room Selection */}
         <div>
-          <label className="block text-sm font-medium mb-1">Pilih Ruangan:</label>
+          <label className="block text-sm font-medium my-2">Pilih Ruangan:</label>
 
           {isLoadingRooms && <p>Memuat ruangan...</p>}
 

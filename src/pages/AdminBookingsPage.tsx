@@ -6,7 +6,7 @@ import {
 import type { RoomBookingResponse } from "../types/admin";
 import toast from "react-hot-toast";
 
-function AdminPage() {
+function AdminBookingsPage() {
   const [bookings, setBookings] =
     useState<RoomBookingResponse[]>([]);
   const [loading, setLoading] = useState(true);
@@ -17,9 +17,10 @@ function AdminPage() {
     try {
       setLoading(true);
       const result = await fetchPendingBookings();
-      setBookings(result.data);
+      setBookings(result.data || []);
     } catch (error) {
       console.error(error);
+      setBookings([]);
     } finally {
       setLoading(false);
     }
@@ -162,4 +163,4 @@ function AdminPage() {
   );
 }
 
-export default AdminPage;
+export default AdminBookingsPage;

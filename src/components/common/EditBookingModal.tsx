@@ -1,11 +1,11 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import toast from "react-hot-toast";
 import type { RoomBookingResponse } from "../../types/admin";
 import { updateBooking } from "../../api/customerBookingApi";
 import axios from "axios";
 
 type Props = {
-  booking: RoomBookingResponse;
+  booking: RoomBookingResponse | null;
   isOpen: boolean;
   bookingId: number;
   initialStartTime: string;
@@ -14,15 +14,19 @@ type Props = {
   onSuccess: () => void;
 };
 
-function EditBookingModal({ booking, onClose, onSuccess }: Props) {
-  const [startTime, setStartTime] = useState(
-    booking.startTime.slice(0, 16)
-  );
-  const [endTime, setEndTime] = useState(
-    booking.endTime.slice(0, 16)
-  );
+function EditBookingModal({ booking, isOpen, onClose, onSuccess }: Props) {
+    const [startTime, setStartTime] = useState("");
+  const [endTime, setEndTime] = useState("");
   const [loading, setLoading] = useState(false);
 
+  useEffect(() => {
+    if (booking) {
+      setStartTime(booking.startTime.slice(0, 16));
+      setEndTime(booking.endTime.slice(0, 16));
+    }
+  }, [booking]);
+  if (!isOpen || !booking) return null;
+  
   const handleSubmit = async () => {
     if (!startTime || !endTime) {
       toast.error("Semua field wajib diisi.");

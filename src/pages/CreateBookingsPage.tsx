@@ -1,12 +1,13 @@
 import { useEffect, useState } from "react";
 import type { BookingGroup } from "../types/booking";
-import BookingModal from "../components/booking/BookingModal";
+import BookingModal from "../components/common/BookingModal";
 import { createBulkBooking } from "../api/bookingApi";
 import { generateDateRange, combineDateTime } from "../utils/dateUtils";
 import { fetchRooms } from "../api/roomApi";
 import type { Room } from "../types/room";
 import toast from "react-hot-toast";
 import ConfirmModal from "../components/common/ConfirmModal";
+import { useNavigate } from "react-router-dom";
 
 
 function BookingPage() {
@@ -14,6 +15,7 @@ function BookingPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [rooms, setRooms] = useState<Room[]>([]);
   const [confirmId, setConfirmId] = useState<string | null>(null);
+  const navigate = useNavigate();
 
 
   const handleSubmitGroup = async (groupId: string) => {
@@ -53,6 +55,7 @@ function BookingPage() {
 
           if (failed.length === 0) {
             toast.success("Booking berhasil diajukan!");
+            navigate("/customer/my-bookings");
             return { ...g, status: "pending", errors: [] };
           }
 

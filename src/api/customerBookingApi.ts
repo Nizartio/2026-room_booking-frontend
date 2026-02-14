@@ -1,16 +1,25 @@
-import api from "axios";
+import api from "./apiClient";
+import type { RoomBookingResponse } from "../types/admin";
+
+export type PaginatedBookingResponse = {
+  page: number;
+  pageSize: number;
+  totalItems: number;
+  totalPages: number;
+  data: RoomBookingResponse[];
+};
 
 export const fetchCustomerBookings = async (
   customerId: number,
   status?: string
-) => {
+): Promise<PaginatedBookingResponse> => {
   let query = `?customerId=${customerId}`;
 
   if (status && status !== "All") {
     query += `&status=${status}`;
   }
 
-  const response = await api.get(
+  const response = await api.get<PaginatedBookingResponse>(
     `/room-bookings${query}`
   );
 
