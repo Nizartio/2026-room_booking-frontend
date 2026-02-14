@@ -8,7 +8,7 @@ import EditBookingModal from "../components/common/EditBookingModal";
 const STATUS_FILTERS = ["All", "Pending", "Approved", "Rejected"] as const;
 type StatusFilter = (typeof STATUS_FILTERS)[number];
 
-function CustomerBookingsPage() {
+function MyBookingsPage() {
   const [bookings, setBookings] =
     useState<RoomBookingResponse[]>([]);
   const [loading, setLoading] = useState(true);
@@ -26,7 +26,7 @@ function CustomerBookingsPage() {
       customerId,
       statusFilter
     );
-    setBookings(result.data);
+    setBookings(result.data ?? []);
   } catch (error) {
     console.error(error);
   } finally {
@@ -142,4 +142,4 @@ useEffect(() => {
   );
 }
 
-export default CustomerBookingsPage;
+export default MyBookingsPage;

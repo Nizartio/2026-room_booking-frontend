@@ -1,11 +1,10 @@
 import { Outlet } from "react-router-dom";
-import Navbar from "../layouts/Navbar";
+import CustomerNavbar from "../components/layouts/CustomerNavbar";
 
-function MainLayout() {
+function CustomerLayout() {
   return (
     <div className="min-h-screen bg-gray-50">
-      <Navbar />
-
+      <CustomerNavbar />
       <main className="max-w-6xl mx-auto py-8 px-6">
         <Outlet />
       </main>
@@ -13,4 +12,4 @@ function MainLayout() {
   );
 }
 
-export default MainLayout;
+export default CustomerLayout;

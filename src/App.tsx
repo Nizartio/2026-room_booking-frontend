@@ -1,18 +1,32 @@
-import { Routes, Route } from "react-router-dom";
-import BookingPage from "./pages/BookingPage";
-import AdminPage from "./pages/AdminPage";
-import "react-datepicker/dist/react-datepicker.css";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import CustomerLayout from "./layouts/CustomerLayout";
+import AdminLayout from "./layouts/AdminLayout";
 
-
-
+import CreateBookingPage from "./pages/CreateBookingsPage";
+import MyBookingsPage from "./pages/MyBookingsPage";
+import AdminBookingsPage from "./pages/AdminBookingsPage";
 
 function App() {
-  
   return (
-    <Routes>
-      <Route path="/" element={<BookingPage />} />
-      <Route path="/admin" element={<AdminPage />} />
-    </Routes>
+    <BrowserRouter>
+      <Routes>
+
+        {/* Default redirect */}
+        <Route path="/" element={<Navigate to="/customers/my-bookings" />} />
+
+        {/* CUSTOMER ROUTES */}
+        <Route path="/customers" element={<CustomerLayout />}>
+          <Route path="booking" element={<CreateBookingPage />} />
+          <Route path="my-bookings" element={<MyBookingsPage />} />
+        </Route>
+
+        {/* ADMIN ROUTES */}
+        <Route path="/admin" element={<AdminLayout />}>
+          <Route path="bookings" element={<AdminBookingsPage />} />
+        </Route>
+
+      </Routes>
+    </BrowserRouter>
   );
 }
 
