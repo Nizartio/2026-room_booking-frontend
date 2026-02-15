@@ -1,5 +1,5 @@
 import api from "./apiClient"
-import type { PaginatedBookingResponse } from "../types/admin";
+import type { PaginatedBookingGroupResponse } from "../types/admin";
 
 export const fetchPendingBookings = async () => {
   const response = await api.get(
@@ -13,7 +13,7 @@ export const fetchAdminBookings = async (
   page: number,
   status?: string,
   search?: string
-): Promise<PaginatedBookingResponse> => {
+): Promise<PaginatedBookingGroupResponse> => {
 
   let query = `?page=${page}&pageSize=10`;
 
@@ -25,7 +25,7 @@ export const fetchAdminBookings = async (
     query += `&search=${encodeURIComponent(search)}`;
   }
 
-  const response = await api.get<PaginatedBookingResponse>(`/room-bookings${query}`);
+  const response = await api.get<PaginatedBookingGroupResponse>(`/room-bookings${query}`);
 
   return response.data;
 };

@@ -1,16 +1,21 @@
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useMemo } from "react";
+import { useNavigate } from "react-router-dom";
 import { fetchCustomerBookingGroups } from "../api/bookingGroupApi";
 import type { BookingGroupDetail } from "../types/admin";
 import toast from "react-hot-toast";
 import { getApiErrorMessage } from "../api/apiClient";
-import { formatDateLong } from "../utils/dateUtils";
+import { formatDateLong } from "../utils/dateutils";
 import ResubmitBookingModal from "../components/common/ResubmitBookingModal";
 import DeleteBookingModal from "../components/common/DeleteBookingModal";
 
+const STATUS_FILTERS = ["Semua", "Menunggu", "Disetujui", "Sebagian Disetujui", "Ditolak", "Sebagian Ditolak"] as const;
+type StatusFilter = (typeof STATUS_FILTERS)[number];
 
 function MyBookingsPage() {
+  const navigate = useNavigate();
   const [bookingGroups, setBookingGroups] = useState<BookingGroupDetail[]>([]);
   const [loading, setLoading] = useState(true);
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>("Semua");
   const [expandedId, setExpandedId] = useState<number | null>(null);
   const [editingBooking, setEditingBooking] = useState<{
     id: number;
@@ -44,15 +49,17 @@ function MyBookingsPage() {
 
   const getStatusColor = (status: string) => {
     switch (status) {
+      case "Approved":
       case "AllApproved":
         return "bg-green-100 text-green-700";
+      case "Rejected":
       case "AllRejected":
         return "bg-red-100 text-red-700";
       case "PartiallyApproved":
       case "PartiallyRejected":
         return "bg-yellow-100 text-yellow-700";
       default:
-        return "bg-sky-100 text-sky-700";
+        return "bg-yellow-100 text-yellow-700";
     }
   };
 
@@ -71,15 +78,63 @@ function MyBookingsPage() {
     }
   };
 
+  const filteredBookingGroups = useMemo(() => {
+    if (statusFilter === "Semua") {
+      return bookingGroups;
+    }
+
+    return bookingGroups.filter(group => {
+      switch (statusFilter) {
+        case "Menunggu":
+          return group.status === "Pending";
+        case "Disetujui":
+          return group.status === "AllApproved";
+        case "Sebagian Disetujui":
+          return group.status === "PartiallyApproved";
+        case "Ditolak":
+          return group.status === "AllRejected";
+        case "Sebagian Ditolak":
+          return group.status === "PartiallyRejected";
+        default:
+          return true;
+      }
+    });
+  }, [bookingGroups, statusFilter]);
+
   return (
     <div className="p-8 bg-sky-50 min-h-screen">
-      <h1 className="text-2xl font-bold mb-6 text-black">
-        Peminjaman Saya
-      </h1>
+      <div className="flex justify-between items-center mb-6">
+        <h1 className="text-2xl font-bold text-black">
+          Peminjaman Saya
+        </h1>
+        <button
+          onClick={() => navigate("/customers/booking")}
+          className="px-4 py-2 bg-rose-500 text-white rounded-md hover:bg-rose-600 transition font-medium"
+        >
+          Tambah Peminjaman
+        </button>
+      </div>
+
+      {/* Status Filter */}
+      <div className="flex gap-3 mb-6">
+        {STATUS_FILTERS.map(status => (
+          <button
+            key={status}
+            onClick={() => setStatusFilter(status)}
+            className={`px-4 py-2 rounded-md text-sm font-medium transition ${
+              statusFilter === status
+                ? "bg-rose-500 text-white"
+                : "bg-white border border-yellow-300 text-black hover:bg-sky-100"
+            }`}
+          >
+            {status}
+          </button>
+        ))}
+      </div>
 
       {loading && <p className="text-black">Memuat peminjaman...</p>}
 
-      {!loading && bookingGroups.length === 0 && (
+      {!loading && filteredBookingGroups.length === 0 && (
         <div className="text-center py-10 text-black">
           <p className="text-lg font-medium">
             Belum ada peminjaman
@@ -87,9 +142,9 @@ function MyBookingsPage() {
         </div>
       )}
 
-      {!loading && bookingGroups.length > 0 && (
+      {!loading && filteredBookingGroups.length > 0 && (
         <div className="space-y-4">
-          {bookingGroups.map(group => (
+          {filteredBookingGroups.map(group => (
             <div
               key={group.id}
               className="border border-yellow-300 bg-white rounded-lg shadow-sm overflow-hidden"
@@ -130,6 +185,11 @@ function MyBookingsPage() {
 
                 {/* Summary badges */}
                 <div className="flex gap-2 mt-3">
+                  {group.totalRooms > 0 && (
+                    <span className="bg-sky-100 text-sky-700 px-2 py-1 text-xs rounded">
+                      {group.totalRooms} Ruangan
+                    </span>
+                  )}
                   {group.approvedCount > 0 && (
                     <span className="bg-green-100 text-green-700 px-2 py-1 text-xs rounded">
                       {group.approvedCount} Disetujui

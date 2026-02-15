@@ -4,9 +4,9 @@ import { updateBookingStatus } from "../api/adminBookingApi";
 import type { BookingGroupDetail } from "../types/admin";
 import toast from "react-hot-toast";
 import { getApiErrorMessage } from "../api/apiClient";
-import { formatDateLong } from "../utils/dateUtils";
+import { formatDateLong } from "../utils/dateutils";
 
-const STATUS_FILTERS = ["All", "Pending", "Approved", "Rejected"] as const;
+const STATUS_FILTERS = ["All", "Menunggu", "Disetujui", "Sebagian Disetujui", "Ditolak", "Sebagian Ditolak"] as const;
 type StatusFilter = (typeof STATUS_FILTERS)[number];
 
 function AdminPage() {
@@ -26,6 +26,7 @@ function AdminPage() {
         return "bg-red-100 text-red-700";
       case "PartiallyApproved":
       case "PartiallyRejected":
+      case "Pending":
         return "bg-yellow-100 text-yellow-700";
       default:
         return "bg-sky-100 text-sky-700";
@@ -62,10 +63,24 @@ function AdminPage() {
     try {
       setLoading(true);
 
+      // Map Indonesian filter labels to backend enum values
+      let statusParam: string | undefined;
+      if (statusFilter === "Menunggu") {
+        statusParam = "Pending";
+      } else if (statusFilter === "Disetujui") {
+        statusParam = "AllApproved";
+      } else if (statusFilter === "Sebagian Disetujui") {
+        statusParam = "PartiallyApproved";
+      } else if (statusFilter === "Ditolak") {
+        statusParam = "AllRejected";
+      } else if (statusFilter === "Sebagian Ditolak") {
+        statusParam = "PartiallyRejected";
+      }
+
       const result = await fetchAdminBookingGroups(
         page,
         10,
-        statusFilter === "All" ? undefined : statusFilter,
+        statusParam,
         search
       );
 
@@ -211,7 +226,7 @@ function AdminPage() {
               {expandedGroupId === group.id && (
                 <div className="p-4 bg-sky-50 border-t border-yellow-300 space-y-3">
                   <p className="text-sm font-medium text-black mb-3">
-                    Detail Ruangan ({group.roomBookings?.length || 0}):
+                    Detail Peminjaman ({group.roomBookings?.length || 0}):
                   </p>
 
                   {group.roomBookings && group.roomBookings.length > 0 ? (

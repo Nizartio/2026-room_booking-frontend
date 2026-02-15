@@ -8,13 +8,12 @@ import toast from "react-hot-toast";
 import ConfirmModal from "../components/common/ConfirmModal";
 import { useNavigate } from "react-router-dom";
 import { getApiErrorMessage } from "../api/apiClient";
-import { formatDateLong } from "../utils/dateUtils";
+import { formatDateLong, formatDateShort } from "../utils/dateutils";
 
 interface BookingResult {
   success: boolean;
   conflicts?: BookingConflict[];
 }
-
 
 function BookingPage() {
   const [bookingGroups, setBookingGroups] = useState<BookingGroup[]>([]);
@@ -28,6 +27,18 @@ function BookingPage() {
     return room ? room.name : `Room #${roomId}`;
   };
 
+  const getDateSummary = (group: BookingGroup) => {
+    if (group.dates && group.dates.length > 0) {
+      const sortedDates = [...group.dates].sort();
+      if (sortedDates.length === 1) {
+        return formatDateLong(sortedDates[0]);
+      }
+      return sortedDates.map(formatDateShort).join(", ");
+    }
+
+    return `${formatDateLong(group.startDate)} → ${formatDateLong(group.endDate)}`;
+  };
+
   const handleSubmitAll = async () => {
     if (bookingGroups.length === 0) {
       toast.error("Tidak ada peminjaman untuk diajukan.");
@@ -39,14 +50,27 @@ function BookingPage() {
 
       const payload = {
         customerId: 1, // sementara hardcoded
-        groups: bookingGroups.map(g => ({
-          startDate: new Date(g.startDate).toISOString().split('T')[0],
-          endDate: new Date(g.endDate).toISOString().split('T')[0],
-          startTime: g.startTime + ":00", // Convert "HH:MM" to TimeSpan format "HH:MM:SS"
-          endTime: g.endTime + ":00",     // Convert "HH:MM" to TimeSpan format "HH:MM:SS"
-          roomIds: g.roomIds,
-          description: g.description
-        }))
+        groups: bookingGroups.map(g => {
+          const normalizedDates = g.dates && g.dates.length > 0
+            ? Array.from(new Set(g.dates)).sort()
+            : [];
+          const startDate = normalizedDates.length > 0
+            ? normalizedDates[0]
+            : g.startDate;
+          const endDate = normalizedDates.length > 0
+            ? normalizedDates[normalizedDates.length - 1]
+            : g.endDate;
+
+          return {
+            startDate,
+            endDate,
+            startTime: g.startTime + ":00", // Convert "HH:MM" to TimeSpan format "HH:MM:SS"
+            endTime: g.endTime + ":00",     // Convert "HH:MM" to TimeSpan format "HH:MM:SS"
+            dates: normalizedDates,
+            roomIds: g.roomIds,
+            description: g.description
+          };
+        })
       };
 
       const response = await submitBulkBookingGroups(payload);
@@ -111,6 +135,15 @@ function BookingPage() {
       <div className="flex-1 overflow-y-auto border-r border-yellow-300 p-8">
         {/* Header */}
         <div className="mb-8">
+          <button
+            onClick={() => navigate("/customers/my-bookings")}
+            className="flex items-center gap-2 text-sky-600 hover:text-rose-500 transition mb-4 font-medium"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+              <path fillRule="evenodd" d="M9.707 16.707a1 1 0 01-1.414 0l-6-6a1 1 0 010-1.414l6-6a1 1 0 011.414 1.414L5.414 9H17a1 1 0 110 2H5.414l4.293 4.293a1 1 0 010 1.414z" clipRule="evenodd" />
+            </svg>
+            Kembali ke Peminjaman Saya
+          </button>
           <h1 className="text-2xl font-bold text-black mb-2">
             Tambah Peminjaman
           </h1>
@@ -164,7 +197,7 @@ function BookingPage() {
                     Peminjaman {idx + 1}
                   </h3>
                   <p className="text-xs text-sky-600 mt-1">
-                    {formatDateLong(group.startDate)} → {formatDateLong(group.endDate)}
+                    {getDateSummary(group)}
                   </p>
                   <p className="text-xs text-sky-600">
                     {group.startTime} - {group.endTime}

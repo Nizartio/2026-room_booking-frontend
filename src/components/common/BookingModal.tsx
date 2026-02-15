@@ -1,11 +1,11 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, type SyntheticEvent, type MouseEvent } from "react";
 import { fetchRooms } from "../../api/roomApi";
 import type { Room } from "../../types/room";
 import type { BookingGroup } from "../../types/booking";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 import { format } from "date-fns";
-import { generateDateRange, combineDateTime } from "../../utils/dateUtils";
+import { combineDateTime } from "../../utils/dateutils";
 import { checkConflicts } from "../../api/bookingApi";
 
 type Props = {
@@ -15,9 +15,50 @@ type Props = {
   isInline?: boolean;
 };
 
+const normalizeDate = (date: Date) =>
+  new Date(date.getFullYear(), date.getMonth(), date.getDate());
+
+const toDateKey = (date: Date) => format(date, "yyyy-MM-dd");
+
+const buildDateRange = (start: Date, end: Date) => {
+  const dates: Date[] = [];
+  const rangeStart = normalizeDate(start);
+  const rangeEnd = normalizeDate(end);
+
+  const [from, to] =
+    rangeStart <= rangeEnd ? [rangeStart, rangeEnd] : [rangeEnd, rangeStart];
+
+  const current = new Date(from);
+  while (current <= to) {
+    dates.push(new Date(current));
+    current.setDate(current.getDate() + 1);
+  }
+
+  return dates;
+};
+
+const mergeUniqueDates = (base: Date[], extra: Date[]) => {
+  const map = new Map<string, Date>();
+  for (const date of base) {
+    map.set(toDateKey(date), date);
+  }
+  for (const date of extra) {
+    map.set(toDateKey(date), date);
+  }
+  return Array.from(map.values()).sort((a, b) => a.getTime() - b.getTime());
+};
+
+const toggleDate = (base: Date[], date: Date) => {
+  const key = toDateKey(date);
+  if (base.some(d => toDateKey(d) === key)) {
+    return base.filter(d => toDateKey(d) !== key);
+  }
+  return mergeUniqueDates(base, [date]);
+};
+
 function BookingModal({ isOpen, onClose, onAdd, isInline = false }: Props) {
-  const [dateRange, setDateRange] = useState<[Date | null, Date | null]>([null, null]);
-  const [startDate, endDate] = dateRange;
+  const [selectedDates, setSelectedDates] = useState<Date[]>([]);
+  const [anchorDate, setAnchorDate] = useState<Date | null>(null);
   const [startTime, setStartTime] = useState("");
   const [endTime, setEndTime] = useState("");
   const [description, setDescription] = useState("");
@@ -57,13 +98,37 @@ function BookingModal({ isOpen, onClose, onAdd, isInline = false }: Props) {
     loadData();
   }, [isOpen, isInline]);
 
-  const generatePayload = useCallback(() => {
-    if (!startDate || !endDate) return [];
+  const handleDateChange = (date: Date | null, event?: SyntheticEvent) => {
+    if (!date) return;
 
-    const dates = generateDateRange(
-      startDate.toISOString().split("T")[0],
-      endDate.toISOString().split("T")[0]
-    );
+    const normalized = normalizeDate(date);
+    const isShift = !!(event as MouseEvent | undefined)?.shiftKey;
+    const isCtrl =
+      !!(event as MouseEvent | undefined)?.ctrlKey ||
+      !!(event as MouseEvent | undefined)?.metaKey;
+
+    if (isShift && anchorDate) {
+      const range = buildDateRange(anchorDate, normalized);
+      setSelectedDates(prev => (isCtrl ? mergeUniqueDates(prev, range) : range));
+    } else if (isCtrl) {
+      setSelectedDates(prev => toggleDate(prev, normalized));
+    } else {
+      setSelectedDates([normalized]);
+    }
+
+    setAnchorDate(normalized);
+  };
+
+  const sortedDates = [...selectedDates].sort(
+    (a, b) => a.getTime() - b.getTime()
+  );
+  const startDate = sortedDates[0] ?? null;
+  const endDate = sortedDates[sortedDates.length - 1] ?? null;
+
+  const generatePayload = useCallback(() => {
+    if (selectedDates.length === 0) return [];
+
+    const dates = selectedDates.map(toDateKey);
 
     const payload = [];
 
@@ -79,13 +144,12 @@ function BookingModal({ isOpen, onClose, onAdd, isInline = false }: Props) {
     }
 
     return payload;
-  }, [startDate, endDate, selectedRooms, startTime, endTime]);
+  }, [selectedDates, selectedRooms, startTime, endTime]);
 
   useEffect(() => {
     const handler = setTimeout(async () => {
       if (
-        !startDate ||
-        !endDate ||
+        selectedDates.length === 0 ||
         !startTime ||
         !endTime ||
         selectedRooms.length === 0
@@ -111,7 +175,7 @@ function BookingModal({ isOpen, onClose, onAdd, isInline = false }: Props) {
 
     return () => clearTimeout(handler);
 
-  }, [startDate, endDate, startTime, endTime, selectedRooms, generatePayload]);
+  }, [selectedDates, startTime, endTime, selectedRooms, generatePayload]);
 
   const getRoomName = (roomId: number) => {
     const room = rooms.find(r => r.id === roomId);
@@ -119,7 +183,7 @@ function BookingModal({ isOpen, onClose, onAdd, isInline = false }: Props) {
   };
 
   const handleSubmit = () => {
-    if (!startDate || !endDate || !startTime || !endTime) {
+    if (selectedDates.length === 0 || !startTime || !endTime) {
       alert("Semua field harus diisi.");
       return;
     }
@@ -132,16 +196,19 @@ function BookingModal({ isOpen, onClose, onAdd, isInline = false }: Props) {
       alert("Jam selesai harus lebih lambat dari jam mulai.");
       return;
     }
-    if (startDate > endDate) {
-      alert("Tanggal selesai harus setelah tanggal mulai.");
+    if (!startDate || !endDate) {
+      alert("Tanggal tidak valid.");
       return;
-    } 
+    }
+
+    const dateStrings = sortedDates.map(toDateKey);
 
 
     const newGroup: BookingGroup = {
       id: crypto.randomUUID(),
       startDate: format(startDate, "yyyy-MM-dd"),
       endDate: format(endDate, "yyyy-MM-dd"),
+      dates: dateStrings,
       startTime,
       endTime,
       roomIds: selectedRooms,
@@ -163,6 +230,8 @@ function BookingModal({ isOpen, onClose, onAdd, isInline = false }: Props) {
     setEndTime("");
     setDescription("");
     setSelectedRooms([]);
+    setSelectedDates([]);
+    setAnchorDate(null);
   };
   
   const formContent = (
@@ -171,17 +240,32 @@ function BookingModal({ isOpen, onClose, onAdd, isInline = false }: Props) {
       
       {/* Date Selection */}
       <div className="mb-4">
-        <label className="block text-sm font-medium mb-1">Pilih Rentang Tanggal:</label>
+        <label className="block text-sm font-medium mb-1">Pilih Tanggal:</label>
         <DatePicker
-          selectsRange
-          startDate={startDate}
-          endDate={endDate}
-          onChange={(update) => {
-            setDateRange(update as [Date | null, Date | null]);
-          }}
+          selected={startDate}
+          onChange={handleDateChange}
           className="w-full border border-yellow-300 rounded-lg px-3 py-2"
           dateFormat="dd-MM-yyyy"
+          value={
+            selectedDates.length === 0
+              ? ""
+              : sortedDates.map(d => format(d, "dd-MM-yyyy")).join(", ")
+          }
+          onChangeRaw={(event) => {
+            if (event) {
+              event.preventDefault();
+            }
+          }}
+          shouldCloseOnSelect={false}
+          dayClassName={(date) =>
+            selectedDates.some(d => toDateKey(d) === toDateKey(date))
+              ? "react-datepicker__day--selected"
+              : ""
+          }
         />
+        <p className="text-xs text-sky-600 mt-1">
+          Gunakan Shift untuk pilih rentang, Ctrl / Cmd untuk pilih beberapa tanggal.
+        </p>
       </div>
       
       {/* Time Selection*/}
@@ -313,8 +397,7 @@ function BookingModal({ isOpen, onClose, onAdd, isInline = false }: Props) {
           onClick={handleSubmit}
           disabled={
             selectedRooms.length === 0 ||
-            !startDate ||
-            !endDate ||
+            selectedDates.length === 0 ||
             !startTime ||
             !endTime ||
             conflicts.length > 0

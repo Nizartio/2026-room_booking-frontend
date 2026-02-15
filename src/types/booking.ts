@@ -26,6 +26,7 @@ export type BookingGroup = {
   endDate: string;
   startTime: string;
   endTime: string;
+  dates?: string[];
 
   roomIds: number[];
   description?: string;
@@ -41,6 +42,7 @@ export type CreateBookingGroupItemPayload = {
   endDate: string;
   startTime: string;
   endTime: string;
+  dates?: string[];
   roomIds: number[];
   description?: string;
 };

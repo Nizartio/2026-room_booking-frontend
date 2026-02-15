@@ -3,6 +3,7 @@ import toast from "react-hot-toast";
 import type { RoomBookingResponse } from "../../types/admin";
 import { updateBooking } from "../../api/customerBookingApi";
 import { getApiErrorMessage } from "../../api/apiClient";
+import { toDateTimeLocalString, fromDateTimeLocalString } from "../../utils/dateutils";
 
 type Props = {
   booking: RoomBookingResponse | null;
@@ -21,12 +22,12 @@ function EditBookingModal({ booking, isOpen, onClose, onSuccess }: Props) {
 
   useEffect(() => {
     if (booking) {
-      setStartTime(booking.startTime.slice(0, 16));
-      setEndTime(booking.endTime.slice(0, 16));
+      setStartTime(toDateTimeLocalString(booking.startTime));
+      setEndTime(toDateTimeLocalString(booking.endTime));
     }
   }, [booking]);
   if (!isOpen || !booking) return null;
-  
+   
   const handleSubmit = async () => {
     if (!startTime || !endTime) {
       toast.error("Semua field wajib diisi.");
@@ -42,8 +43,8 @@ function EditBookingModal({ booking, isOpen, onClose, onSuccess }: Props) {
       setLoading(true);
 
       await updateBooking(booking.id, {
-        startTime: new Date(startTime).toISOString(),
-        endTime: new Date(endTime).toISOString()
+        startTime: fromDateTimeLocalString(startTime),
+        endTime: fromDateTimeLocalString(endTime)
       });
 
       toast.success("Booking berhasil diperbarui!");

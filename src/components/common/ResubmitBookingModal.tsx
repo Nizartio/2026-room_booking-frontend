@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import toast from "react-hot-toast";
 import { resubmitBooking } from "../../api/customerBookingApi";
 import { getApiErrorMessage } from "../../api/apiClient";
+import { toDateTimeLocalString, fromDateTimeLocalString } from "../../utils/dateutils";
 
 type Props = {
   isOpen: boolean;
@@ -29,8 +30,8 @@ function ResubmitBookingModal({
   useEffect(() => {
     if (isOpen) {
       // Convert ISO string to datetime-local format
-      setStartTime(new Date(initialStartTime).toISOString().slice(0, 16));
-      setEndTime(new Date(initialEndTime).toISOString().slice(0, 16));
+      setStartTime(toDateTimeLocalString(initialStartTime));
+      setEndTime(toDateTimeLocalString(initialEndTime));
     }
   }, [isOpen, initialStartTime, initialEndTime]);
 
@@ -52,8 +53,8 @@ function ResubmitBookingModal({
 
       await resubmitBooking(
         bookingId,
-        new Date(startTime).toISOString(),
-        new Date(endTime).toISOString()
+        fromDateTimeLocalString(startTime),
+        fromDateTimeLocalString(endTime)
       );
 
       toast.success("Peminjaman berhasil diajukan ulang!");
