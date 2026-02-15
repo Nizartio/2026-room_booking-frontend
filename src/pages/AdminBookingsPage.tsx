@@ -4,7 +4,7 @@ import { updateBookingStatus } from "../api/adminBookingApi";
 import type { BookingGroupDetail } from "../types/admin";
 import toast from "react-hot-toast";
 import { getApiErrorMessage } from "../api/apiClient";
-import { formatDateLong } from "../utils/dateutils";
+import { formatDateLong, formatDateShort } from "../utils/dateutils";
 
 const STATUS_FILTERS = ["All", "Menunggu", "Disetujui", "Sebagian Disetujui", "Ditolak", "Sebagian Ditolak"] as const;
 type StatusFilter = (typeof STATUS_FILTERS)[number];
@@ -57,6 +57,18 @@ function AdminPage() {
       default:
         return "bg-yellow-100 text-yellow-700";
     }
+  };
+
+  const getDateSummary = (group: BookingGroupDetail) => {
+    if (group.dates && group.dates.length > 0) {
+      const sortedDates = [...group.dates].sort();
+      if (sortedDates.length === 1) {
+        return formatDateLong(sortedDates[0]);
+      }
+      return sortedDates.map(formatDateShort).join(", ");
+    }
+
+    return `${formatDateLong(group.startDate)} → ${formatDateLong(group.endDate)}`;
   };
   
   const loadBookings = useCallback(async () => {
@@ -179,7 +191,7 @@ function AdminPage() {
                       {group.customerName}
                     </p>
                     <p className="text-sm text-black mt-1">
-                      <strong>{formatDateLong(group.startDate)}</strong> → <strong>{formatDateLong(group.endDate)}</strong>
+                      {getDateSummary(group)}
                     </p>
                     <p className="text-xs text-sky-600 mt-1">
                       {group.startTime} - {group.endTime}

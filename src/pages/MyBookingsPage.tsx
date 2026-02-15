@@ -4,7 +4,7 @@ import { fetchCustomerBookingGroups } from "../api/bookingGroupApi";
 import type { BookingGroupDetail } from "../types/admin";
 import toast from "react-hot-toast";
 import { getApiErrorMessage } from "../api/apiClient";
-import { formatDateLong } from "../utils/dateutils";
+import { formatDateLong, formatDateShort } from "../utils/dateutils";
 import ResubmitBookingModal from "../components/common/ResubmitBookingModal";
 import DeleteBookingModal from "../components/common/DeleteBookingModal";
 
@@ -76,6 +76,18 @@ function MyBookingsPage() {
       default:
         return "Menunggu";
     }
+  };
+
+  const getDateSummary = (group: BookingGroupDetail) => {
+    if (group.dates && group.dates.length > 0) {
+      const sortedDates = [...group.dates].sort();
+      if (sortedDates.length === 1) {
+        return formatDateLong(sortedDates[0]);
+      }
+      return sortedDates.map(formatDateShort).join(", ");
+    }
+
+    return `${formatDateLong(group.startDate)} → ${formatDateLong(group.endDate)}`;
   };
 
   const filteredBookingGroups = useMemo(() => {
@@ -158,7 +170,7 @@ function MyBookingsPage() {
                       Grup Peminjaman #{group.id}
                     </p>
                     <p className="text-sm text-black mt-1">
-                      <strong>{formatDateLong(group.startDate)}</strong> → <strong>{formatDateLong(group.endDate)}</strong>
+                      {getDateSummary(group)}
                     </p>
                     <p className="text-xs text-sky-600 mt-1">
                       {group.startTime} - {group.endTime}

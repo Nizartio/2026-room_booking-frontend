@@ -23,6 +23,7 @@ export type BookingGroupDetail = {
   endDate: string;
   startTime: string;
   endTime: string;
+  dates?: string[];
   description?: string;
   status: string;
   createdAt: string;
