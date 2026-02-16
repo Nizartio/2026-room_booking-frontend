@@ -1,0 +1,26 @@
+import { NavLink } from "react-router-dom";
+
+function AdminNavbar() {
+  const linkClass = ({ isActive }: { isActive: boolean }) =>
+    `text-sm font-medium px-3 py-2 rounded-md transition border-b-2 ${
+      isActive
+        ? "bg-rose-500 text-white border-yellow-400 shadow-md"
+        : "text-black hover:bg-sky-100 border-b-2 border-transparent"
+    }`;
+
+  return (
+    <nav className="bg-sky-50 border-b border-yellow-300 shadow-sm px-6 py-4 flex gap-6 sticky top-0 z-40 items-center">
+      <NavLink to="/admin/bookings" className="text-lg font-bold text-rose-500">
+        PinjamIn
+      </NavLink>
+      <NavLink to="/admin/bookings" className={linkClass}>
+        Booking Management
+      </NavLink>
+      <NavLink to="/admin/customers" className={linkClass}>
+        Customer Management
+      </NavLink>
+    </nav>
+  );
+}
+
+export default AdminNavbar;
